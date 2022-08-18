@@ -1,0 +1,24 @@
+
+import requests
+import datetime
+
+com = input("Ingrese ticket: ")
+
+startTime= input("Ingrese fecha desde: ") 
+año, mes, dia = map(int, startTime.split('-'))
+
+
+endtime= input("Ingrese fecha hasta: ")
+año, mes, dia = map(int, endtime.split('-'))
+
+fecha = startTime + "/" + endtime
+
+url = "https://api.polygon.io/v2/aggs/ticker/"+ str(com) +"/range/1/day/"+ str(fecha)+ "?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE"
+
+payload={}
+files={}
+headers = {}
+
+response = requests.request("GET", url, headers=headers, data=payload, files=files)
+
+print(response.text)
