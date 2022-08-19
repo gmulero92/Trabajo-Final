@@ -1,0 +1,57 @@
+from calendar import c
+import requests
+import datetime
+import sqlite3 as sql
+
+
+com = input("Ingrese ticket: ")
+
+startTime= input("Ingrese fecha desde: ") 
+año, mes, dia = map(int, startTime.split('-'))
+
+
+endtime= input("Ingrese fecha hasta: ")
+año, mes, dia = map(int, endtime.split('-'))
+
+fecha = startTime + "/" + endtime
+
+url = "https://api.polygon.io/v2/aggs/ticker/"+ str(com) +"/range/1/day/"+ str(fecha)+ "?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE"
+
+payload={}
+files={}
+headers = {}
+
+response = requests.request("GET", url, headers=headers, data=payload, files=files)
+
+def createDB():
+    conn = sql.connect("segundaparte.db")
+    conn.commit()
+    conn.close()
+
+def createTable():
+    conn = sql.connect("segundaparte.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        """CREATE TABLE segundaparte (
+            Nombre text,
+            ClosePrice decimal,
+            HighValue decimal,
+            LowesValue decimal
+        )"""
+    )
+    conn.commit()
+    conn.close()
+
+def insertRow(nombre, ClosePrice, HighValue, LowesValue):
+    conn = sql.connect("segundaparte.db")
+    cursor = conn.cursor()
+    instruccion = f"INSERT INTO segundaparte.db VALUES('{com}')"
+    conn.commit()
+    conn.close()
+
+if __name__=="__main__":
+    #createDB()
+    #createTable()
+    insertRow(url)
+
+#print(response.text)
