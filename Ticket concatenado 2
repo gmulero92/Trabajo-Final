@@ -1,7 +1,19 @@
+from lib2to3.pytree import results
+from tarfile import _Bz2ReadableFileobj
+from tkinter.tix import Tree
 import requests as r
 import datetime as dt
-import panda
+import pandas as p
+import matplotlib.pyplot as plt
 
+#Selección de opción
+opcion = 0
+while True:
+    opcion = input('Seleccione una opción: \n1 Actualización de datos\2 Visualización de datos\n')
+    if opcion =='1' or opcion == '2' : break
+    else: print('Opción invalida')
+
+# Pedido al servidor
 def pedido_servidor(ticket,date_from,date_to):
     results = []
     url = "https://api.polygon.io/v2/aggs/ticker/"
@@ -9,16 +21,34 @@ def pedido_servidor(ticket,date_from,date_to):
     mult = '1'
     timestamp = 'day'
     adjusted = 'adjusted=true'
-    sort = 'sort=desc'
+    sort = 'sort=asc'
     limit = '1000'
     apiKey = 'apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE'
-    x = r.get(url+stocksT+'/range/'+ mult+ '/'+ timestamp+'/'+ date_from+'/'+ date_to +'/?'+adjusted+'&'+sort+'&'+limit+'&'+apiKey)
+    x = r.get(url+stocksT+'/range/'+mult+ '/'+timestamp+'/'+ date_from+'/'+ date_to +'?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE')
     y =x.json()
     date = 0
     if str(x.status_code)[0] == '4':
         print('Hubo un Error')
     else:
-        stocksT = input('Ingrese ticket: ')
+        if y['queryCount'] == 0: print('Sin Valor')
+        else: results = y ['results']
+def check_ticker(name):
+    pars = r.get("https://api.polygon.io/v2/aggs/ticker/"+name+'/range/1/day/2021-07-22/2021-07-22?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE')
+    complete_name = pars.json()['results']
+    return complete_name
+
+# ---------------------------------------------Ingreso valido Ticker-------------------------------------
+ticker= ''
+if opcion == '1': opcion_palabra = 'actualizar'
+else: opcion_palabra = 'graficar'
+while True:
+    ticker = input('Ingrese Acción a' + opcion_palabra + '\n').upper()
+#----------------------------------------------Formula---------------------------------------------------
+    x = check_ticker(ticker)
+    if len(x)> 0:
+        print(x[0]['name'])
+        break
+    else: print('Accion no encontrada')
 #----------------------------------------------Ingreso y validación de Fechas----------------------------
 date_from, date_to = ' ',' '
 ts_from, ts_to = 0, 0
