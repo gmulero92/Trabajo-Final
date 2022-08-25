@@ -1,57 +1,136 @@
-from calendar import c
-import requests
-import datetime
-import sqlite3 as sql
+from lib2to3.pytree import results
+from optparse import Values
+from tarfile import _Bz2ReadableFileobj
+from tkinter.tix import Tree
+import requests as r
+import datetime as dt
+import pandas as p
+import matplotlib.pyplot as plt
+import sqlite3 as sq
+import datetime as dt
 
 
-com = input("Ingrese ticket: ")
+#Selección de opción
+opcion = 0
+while True:
+    opcion = input('Seleccione una opción: \n1 Actualización de datos\2 Visualización de datos\n')
+    if opcion =='1' or opcion == '2' : break
+    else: print('Opción invalida')
 
-startTime= input("Ingrese fecha desde: ") 
-año, mes, dia = map(int, startTime.split('-'))
+# Pedido al servidor
+def pedido_servidor(ticket,date_from,date_to):
+    results = []
+    url = "https://api.polygon.io/v2/aggs/ticker/"
+    stocksT = ticket
+    mult = '1'
+    timestamp = 'day'
+    adjusted = 'adjusted=true'
+    sort = 'sort=asc'
+    limit = '1000'
+    apiKey = 'apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE'
+    x = r.get(url+stocksT+'/range/'+mult+ '/'+timestamp+'/'+ date_from+'/'+ date_to +'?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE')
+    y =x.json()
+    date = 0
+    if str(x.status_code)[0] == '4':
+        print('Hubo un Error')
+    else:
+        if y['queryCount'] == 0: print('Sin Valor')
+        else: results = y ['results']
+def check_ticker(name):
+    pars = r.get("https://api.polygon.io/v2/aggs/ticker/"+name+'/range/1/day/2021-07-22/2021-07-22?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE')
+    complete_name = pars.json()['results']
+    return complete_name
 
+# ---------------------------------------------Ingreso valido Ticker-------------------------------------
+ticker= ''
+if opcion == '1': opcion_palabra = 'actualizar'
+else: opcion_palabra = 'graficar'
+while True:
+    ticker = input('Ingrese Acción a' + opcion_palabra + '\n').upper()
+#----------------------------------------------Formula---------------------------------------------------
+    x = check_ticker(ticker)
+    if len(x)> 0:
+        print(x[0]['name'])
+        break
+    else: print('Accion no encontrada')
+#----------------------------------------------Ingreso y validación de Fechas----------------------------
+date_from, date_to = ' ',' '
+ts_from, ts_to = 0, 0
+while True:
+    try:
+        date_from = input('Ingrese fecha inicial:\n')
+        date_to = input('Ingrese fecha final:\n')
 
-endtime= input("Ingrese fecha hasta: ")
-año, mes, dia = map(int, endtime.split('-'))
+        ts_from, date_from = dt(date_from)
+    except:
+        print('Formato de fecha invalido')
+        continue
+    if ts_to < ts_from:
+        print('Rango de fecha invàlido')
+    else: break
 
-fecha = startTime + "/" + endtime
+#-------------------------------------------Conexión a la base--------------------------------------------
+conn = sq.connect('prueba.db')
 
-url = "https://api.polygon.io/v2/aggs/ticker/"+ str(com) +"/range/1/day/"+ str(fecha)+ "?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE"
+# creando cursor
+c = conn.cursor()
 
-payload={}
-files={}
-headers = {}
+#crear tabla
+def crear_tabla(name,base_de_datos):
+coneccion = sq.connect(base_de_datos)  
+cursor = coneccion.cursor()
+cursor.execute (f"""
+CREATE TABLE acciones (
+    Nombre del ticket TEXT,
+    Precio de cierre REAL,
+    MaxValor REAL,
+    MenorValor REAL,
+    Transacciones INTEGER,
+    Precioapertura REAL,
+    OTC REAL,
+    Integer REAL,
+    Volumen REAL,
+    VW REAL
+)""")
+coneccion.commit()
+coneccion.close()
 
-response = requests.request("GET", url, headers=headers, data=payload, files=files)
+def lista_a_base(name,base_de_datos):
+    coneccion = sq.connect(base_de_datos)
+    cursor = coneccion.cursor()
+    cursor.executemany()
+    f"INSERT OR IGNORE INTO {name}" (DATE, VOLUME, VAL_W, OPEN, CLOSE, HIGH, Low, sq.Timestamp)" 
+    f"Values(?,?,?,?,?,?,?,?,?)", lista_de_tupla)
+    coneccion.commit()
+    coneccion.close()
 
-def createDB():
-    conn = sql.connect("segundaparte.db")
-    conn.commit()
-    conn.close()
+def ordenar_tabla(name,base_de_datos):
+    coneccion = sq.connect(base_de_datos)
+    cursor = coneccion.cursor()
+    cursor.execute(f"SELECT * FROM {name} ORDER BY Date ASC")
+    coneccion.commit()
+    coneccion.close()
 
-def createTable():
-    conn = sql.connect("segundaparte.db")
-    cursor = conn.cursor()
-    cursor.execute(
-        """CREATE TABLE segundaparte (
-            Nombre text,
-            ClosePrice decimal,
-            HighValue decimal,
-            LowesValue decimal
-        )"""
-    )
-    conn.commit()
-    conn.close()
+#Convertir datos pedidos en listas de tuplas
 
-def insertRow(nombre, ClosePrice, HighValue, LowesValue):
-    conn = sql.connect("segundaparte.db")
-    cursor = conn.cursor()
-    instruccion = f"INSERT INTO segundaparte.db VALUES('{com}')"
-    conn.commit()
-    conn.close()
-
-if __name__=="__main__":
-    #createDB()
-    #createTable()
-    insertRow(url)
+def convertir_datos(lista):
+    listas_final = []
+    if len(lista) > 0:
+        for i range(len(lista)):
+            a = (str(dt.fromtimestamp(float(lista[i]['t']) / 1000).strftime('%Y-%M-%D')),int(lista[i]['v']),float(lista[i]['o']),
+            float(lista[i]['c']),float(lista[i]['h']), float(lista[i]['l']),int(lista[i]['t'])//1000, int (lista[i]['n']))
+            lista_final += [tupla(a)]
+    return lista_final
+    
+def pedir_datos(base_de_datos,name,col,ts_ini,ts_fin):
+    data_list = []
+    coneccion = sq.connect(base_de_datos)
+    cursor = coneccion.cursor()
+    cursor.execute(f'SELECT {col} FROM {name} WHERE Timestamp BETWEEN {ts_ini} AND {ts_fin}')
+    data = cursor.fetchall()
+    coneccion.close()
+    for i in data:
+        data_list += i 
+        return data_list
 
 #print(response.text)
