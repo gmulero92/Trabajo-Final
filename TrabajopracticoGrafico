@@ -1,0 +1,101 @@
+#from lib2to3.pytree import results
+from optparse import Values
+#from tarfile import _Bz2ReadableFileobj
+from tkinter.tix import Tree
+import requests as r
+import datetime as dt
+import pandas as p
+import matplotlib.pyplot as plt
+import sqlite3 as sql
+import pandas as pd
+import json
+import plotly.graph_objs as go
+
+
+#Selección de opción
+opcion = 0
+while True:
+    opcion = input('Seleccione una opción: \n1 Actualización de datos\n2 Visualización de datos\n')
+#print(response.text)
+    if opcion =='1':
+        com = input("Ingrese ticker: ")
+        startTime= input("Ingrese fecha desde: ")
+        año, mes, dia = map(int, startTime.split('-'))
+        endtime= input("Ingrese fecha hasta: ")
+        año, mes, dia = map(int, endtime.split('-'))
+        fecha = startTime + "/" + endtime
+        url = "https://api.polygon.io/v2/aggs/ticker/"+ str(com) +"/range/1/day/"+ str(fecha)+ "?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE"
+        payload={}
+        files={}
+        headers = {}
+        response = r.request("GET", url, headers=headers, data=payload, files=files)
+        res = []
+        data = response.json()
+        for s in data['results']:
+              res.append(s)
+              df = pd.DataFrame(res)
+              df ['Date'] = pd.to_datetime (df['t'], unit ='ms')
+              df = df.rename(columns={
+                  'o': 'open',
+                  'c': 'close',
+                  'h': 'high',
+                  'l': 'low',
+                  'v': 'volume',
+                  'vw': 'vwap',
+                  'n': 'transactions'})
+              conn = sql.connect ('df.db')
+              df.to_sql ('df', conn, if_exists='replace')
+
+              conn = sql.connect ('df.db')
+              df = pd.read_sql ('SELECT * FROM df', conn)
+              
+
+                # Pedido al servidor
+        def pedido_servidor(ticket,date_from,date_to):
+            results = []
+            url = "https://api.polygon.io/v2/aggs/ticker/"
+            stocksT = ticket
+            mult = '1'
+            timestamp = 'day'
+            adjusted = 'adjusted=true'
+            sort = 'sort=asc'
+            limit = '1000'
+            apiKey = 'apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE'
+            x = r.get(url+stocksT+'/range/'+mult+ '/'+timestamp+'/'+ date_from+'/'+ date_to +'?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE')
+            y =x.json()
+            date = 0
+            if str(x.status_code)[0] == '4':
+                print('Hubo un Error')
+            else:
+                if y['queryCount'] == 0: print('Sin Valor')
+                else: results = y ['results']
+        def check_ticker(name):
+            pars = r.get("https://api.polygon.io/v2/aggs/ticker/"+name+'/range/1/day/2021-07-22/2021-07-22?adjusted=true&sort=asc&limit=120&apiKey=G_Yb5HG6ldlS0k0SHQdr8w6Q4FKYJEVE')
+            complete_name = pars.json()['results']
+            return complete_name
+        print(response.text)
+    elif opcion == '2':
+      fig = go.Figure()
+      fig.add_trace(go.Candlestick(x=df.index,
+                open=df['open'],
+                high=df['high'],
+                low=df['low'],
+                close=df['close'], name = 'market data'))
+      fig.update_layout(
+            title='Evolución precio stock ',
+            yaxis_title='Precio (USD)')
+      fig.update_xaxes(
+          rangeslider_visible=True,
+          rangeselector=dict(
+              buttons=list([
+                  dict(count=15, label="15m", step="minute", stepmode="backward"),
+                  dict(count=45, label="45m", step="minute", stepmode="backward"),
+                  dict(count=1, label="HTD", step="hour", stepmode="todate"),
+                  dict(count=3, label="3h", step="hour", stepmode="backward"),
+                  dict(step="all")
+              ])
+          )
+      )
+      fig.show()
+      break
+    else: print('Opción invalida')
