@@ -1,15 +1,11 @@
-#from lib2to3.pytree import results
 from optparse import Values
-#from tarfile import _Bz2ReadableFileobj
 from tkinter.tix import Tree
 import requests as r
 import datetime as dt
-import pandas as p
 import matplotlib.pyplot as plt
 import sqlite3 as sql
 import pandas as pd
 import json
-import plotly.graph_objs as go
 
 
 #Selección de opción
